@@ -1,0 +1,93 @@
+library(igraph)
+
+
+edges <- c(
+  1,2,  1,3,  1,4,  
+  2,3,  2,6,  
+  3,4,  3,5,  
+  4,5,  4,6,                   
+  5,6,  5,7,  5,8,  
+  6,7,  6,8,  
+  7,8
+)
+
+g_whole <- graph(edges, directed = FALSE)
+
+
+layout_pos <- layout_nicely(g_whole)
+par(mfrow = c(1, 3))
+#Show Whole Graph
+plot(g_whole, layout = layout_pos, 
+     vertex.color = c(rep("lightblue", 4), rep("lightgreen", 4)),
+     vertex.size = 35, 
+edge.color = "red", 
+main = "Whole Graph")
+
+g_comm1 <- induced_subgraph(g_whole, 
+vids = c(1, 2, 3, 4))
+
+#Show 1st Community
+plot(g_comm1, 
+vertex.color = "lightblue", 
+vertex.size = 40, edge.color = "red", 
+main = "Community 1 [1,2,3,4]")
+
+g_comm2 <- induced_subgraph(g_whole, 
+vids = c(5, 6, 7, 8))
+
+#Show 2nd Community
+plot(g_comm2, 
+vertex.color = "lightgreen", 
+vertex.size = 40, edge.color = "red",
+vertex.label=c(5,6,7,8), 
+main = "Community 2 [5,6,7,8]")
+
+par(mfrow = c(1, 1))
+
+
+deg <- degree(g_whole)
+m <- length(E(g_whole))
+two_m <- 2 * m
+adj <- as.matrix(as_adjacency_matrix(g_whole))
+#Number of Arc
+cat("Number of arc:", m,"\n")
+
+#Compute Modularity
+calculate_slide_modularity <- function(comm_name, node_pairs) {
+  
+  cat("Modularity of:", comm_name, "\n")
+  
+  comm_score <- 0
+  
+  for (p in node_pairs) {
+    i <- p[1]
+    j <- p[2]
+    A_ij <- adj[i, j]
+    Ki <- deg[i]
+    Kj <- deg[j]
+    
+    # A_ij - (Ki * Kj) / 2m
+    term <- A_ij - (Ki * Kj) / two_m
+    comm_score <- comm_score + term
+    
+    cat(sprintf("Pair (%d-%d) => A_%d%d = %d | k_%d=%d, k_%d=%d | Calc: %d - (%d*%d)/%d = %.4f\n",
+                i, j, i, j, A_ij, i, Ki, j, Kj, A_ij, Ki, Kj, two_m, term))
+  }
+  
+
+  cat(sprintf("Sum of Modularity  = %.2f\n\n", comm_score))
+  return(comm_score)
+}
+
+# Comm 1
+pairs_comm1 <- list(c(1,2), c(1,3), c(1,4), c(2,3), c(3,4), c(2,4))
+
+# Comm 2
+pairs_comm2 <- list(c(5,6), c(5,7), c(5,8), c(6,7), c(6,8), c(7,8))
+
+# Modularity for each Modularity
+score1 <- calculate_slide_modularity("Community [1, 2, 3, 4]", pairs_comm1)
+score2 <- calculate_slide_modularity("Community [5, 6, 7, 8]", pairs_comm2)
+
+# Commulative Modularity
+cat(sprintf("Cumulative Modularity Score: %.2f + %.2f = %.2f\n", score1, score2, score1 + score2))

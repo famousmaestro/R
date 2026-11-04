@@ -1,0 +1,70 @@
+library(igraph)
+library(MASS) 
+
+#Edges
+edges <- c(
+  "A", "B",   "A", "D",
+  "B", "C",   "B", "F",
+  "C", "D",   "C", "E",
+  "D", "B",
+  "E", "A",   "E", "D",
+  "F", "D"
+)
+
+# Build graph and extract node names
+g <- graph(edges = edges, directed = TRUE)
+n <- length(V(g)) 
+node_names <- V(g)$name
+adj_mat <- as_adjacency_matrix(g, sparse = FALSE)
+
+# Function to calculate PageRank step
+calculate_next_pagerank <- function(pr_current, adj_matrix) {
+  out_deg <- rowSums(adj_matrix)
+  shares <- pr_current / out_deg
+  new_pr <- as.vector(t(adj_matrix) %*% shares)
+  return(new_pr)
+}
+
+# Calculations and iterations
+pr_0 <- rep(1 / n, n)
+pr_1 <- calculate_next_pagerank(pr_0, adj_mat)
+pr_2 <- calculate_next_pagerank(pr_1, adj_mat)
+
+#Function for print results
+print_pagerank_formatted <- function(pr_values, iteration_num) {
+  cat(paste0("Iteration ", iteration_num, ":\n"))
+  Pr_frac_values <- fractions(pr_values)
+  for (i in seq_along(node_names)) {
+    cat(paste0("PR", iteration_num, "(", node_names[i], ") = ", Pr_frac_values[i], "\n"))
+  }
+}
+
+# Print Results
+print_pagerank_formatted(pr_1, 1)
+
+print_pagerank_formatted(pr_2, 2)
+
+# Setup node labels and plot all graphs side-by-side
+labels_k0 <- paste0(node_names, "\n", as.character(fractions(pr_0)))
+labels_k1 <- paste0(node_names, "\n", as.character(fractions(pr_1)))
+labels_k2 <- paste0(node_names, "\n", as.character(fractions(pr_2)))
+
+
+par(mfrow = c(1, 3), mar = c(2, 1, 3, 1))
+
+# Plot Iteration 0
+plot(g, layout = layout_in_circle, vertex.label = labels_k0, 
+     vertex.size = 42, vertex.color = "lightblue", 
+     main = "Iteration 0 (PR = 1/n)")
+
+# Plot Iteration 1
+plot(g, layout = layout_in_circle, vertex.label = labels_k1, 
+     vertex.size = 42, vertex.color = "lightblue", 
+     main = "Iteration 1 (k = 1)")
+
+# Plot Iteration 2
+plot(g, layout = layout_in_circle, vertex.label = labels_k2, 
+     vertex.size = 42, vertex.color = "lightblue", 
+     main = "Iteration 2 (k = 2)")
+
+par(mfrow = c(1, 1))
